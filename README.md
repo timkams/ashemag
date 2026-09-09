@@ -53,6 +53,14 @@ The optional WebMCP tools expose anatomy search and inspection in compatible bro
 
 The repository includes browser-ready geometry. Rebuilding it is optional: obtain the official BodyParts3D OBJ archive and English metadata tables, prepare the joined concepts and display-system mappings, run `scripts/convert-anatomy.py`, then `node scripts/optimize-anatomy.mjs` and `node scripts/compress-models.mjs`. Simplification uses a 0.2% relative error limit per structure.
 
+## Localization
+
+The interface ships in English (default) and Uzbek (Latin). A language toggle in the header switches between them, and the choice is stored in `localStorage`.
+
+All translatable copy lives in [`app/i18n.tsx`](app/i18n.tsx): interface strings (`UI`), the fifteen anatomical system names and descriptions (`SYSTEMS_UZ`), and the dedicated organ explanations (`EXPLANATIONS_UZ`). English is the source of truth and is reused as a fallback for any missing key. Components read translations through the `useI18n()` hook.
+
+To add a language, extend the `Lang` type and `LANGS` list, add a matching block to `UI`, and provide the system and explanation dictionaries. The 3,432 source concept names come from the BodyParts3D dataset and are not yet localized.
+
 ## Deploy
 
 Import this repository into Vercel as a Vite project. The included `vercel.json` configures `npm ci`, `npm run build`, and the `dist` output directory. It can also be served by a static host.
