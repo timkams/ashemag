@@ -20,7 +20,19 @@ export interface Part {id:string;name:string;conceptId:string;system:SystemId;ch
 export interface Concept {id:string;name:string;elements:string[]}
 export interface Atlas {version:string;sex?:'male';source?:string;scope?:string;parts:Part[];concepts:Concept[];chunks:{url:string;bytes:number;gzip?:string;gzipBytes?:number}[];triangles:number}
 export type View = 'three-quarter'|'front'|'back'|'side';
-export interface SceneState {inspectorOpen?:boolean;explode:number;visible:SystemId[];selected:string[];isolate:boolean;view:View;rotate:boolean;reset:number}
+export type RegionId='all'|'head'|'torso'|'left-arm'|'right-arm'|'left-leg'|'right-leg';
+export const REGIONS:{id:RegionId;name:string}[]=[{id:'all',name:'Whole body'},{id:'head',name:'Head & neck'},{id:'torso',name:'Torso'},{id:'left-arm',name:'Left arm'},{id:'right-arm',name:'Right arm'},{id:'left-leg',name:'Left leg'},{id:'right-leg',name:'Right leg'}];
+/** ponytail: region from bounding-box center, calibrated to the standing BodyParts3D pose. Use the FMA part-of tree if a model needs exact membership. */
+export function regionOf(p:Part):RegionId{const x=(p.bounds[0][0]+p.bounds[1][0])/2,y=(p.bounds[0][1]+p.bounds[1][1])/2;if(y>1.45)return 'head';if(Math.abs(x)>.15)return x>0?'left-arm':'right-arm';if(y<.86)return x>=0?'left-leg':'right-leg';return 'torso';}
+export type ExplodeMode='peel'|'inventory';
+export interface SceneState {inspectorOpen?:boolean;explode:number;visible:SystemId[];selected:string[];hidden:string[];isolate:boolean;view:View;rotate:boolean;reset:number;region:RegionId;mode:ExplodeMode;focus:number}
+export interface ModelInfo {id:string;name:string;subtitle:string;url:string;credit:string;license:string;licenseUrl:string;hiddenByDefault?:SystemId[]}
+export const MODELS:ModelInfo[]=[
+ {id:'bodyparts3d',name:'BodyParts3D',subtitle:'Whole body with organs',url:'/models/atlas.json',credit:'The Database Center for Life Science',license:'CC BY 4.0',licenseUrl:'https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html'},
+ {id:'zanatomy',name:'Z-Anatomy',subtitle:'Bones, muscles, nerves & vessels',url:'/models/zanatomy.json',credit:'Gauthier Kervyn & contributors',license:'CC BY-SA 4.0',licenseUrl:'https://github.com/LluisV/Z-Anatomy',hiddenByDefault:['connective']},
+];
+/** Parts whose bounding boxes touch the given part, nearest first. */
+export function neighbors(atlas:Atlas,part:Part,limit=12){const pad=.006,a=part.bounds,cx=(a[0][0]+a[1][0])/2,cy=(a[0][1]+a[1][1])/2,cz=(a[0][2]+a[1][2])/2;return atlas.parts.filter(p=>p.id!==part.id&&p.system!=='integumentary'&&p.bounds[0][0]<=a[1][0]+pad&&p.bounds[1][0]>=a[0][0]-pad&&p.bounds[0][1]<=a[1][1]+pad&&p.bounds[1][1]>=a[0][1]-pad&&p.bounds[0][2]<=a[1][2]+pad&&p.bounds[1][2]>=a[0][2]-pad).map(p=>({p,d:Math.hypot((p.bounds[0][0]+p.bounds[1][0])/2-cx,(p.bounds[0][1]+p.bounds[1][1])/2-cy,(p.bounds[0][2]+p.bounds[1][2])/2-cz)})).sort((x,y)=>x.d-y.d).slice(0,limit).map(x=>x.p);}
 export const DEFAULT_VISIBLE:SystemId[] = ['cardiac','sensory','skeletal','muscular','arterial','venous','nervous','respiratory','digestive','urinary','lymphatic','endocrine','reproductive','connective'];
 export const EXPLANATIONS:Record<string,string> = {
  'heart':'A muscular pump in the chest. Its right side sends blood to the lungs; its left side sends blood through the systemic circulation.',

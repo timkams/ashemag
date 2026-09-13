@@ -13,7 +13,7 @@
 @media(max-width:767px){.anatomy-choice{margin-top:10px}.anatomy-choice [data-slot=select-trigger]{min-height:40px;font-size:12px}.layers-panel.mobile-open{top:auto}.search-panel{top:162px}.anatomy-search-results{max-height:calc(100dvh - 370px)!important}}
 @media(max-height:600px) and (orientation:landscape){.anatomy-choice{margin-top:7px}.anatomy-choice [data-slot=select-trigger]{min-height:36px}.layers-panel.mobile-open{top:132px}.search-panel{top:70px}.anatomy-search-results{max-height:160px!important}}
 .part-hover{position:absolute;pointer-events:none;z-index:45;max-width:250px;background:#202e3bf5;color:#ffffff;padding:9px 12px;border-radius:5px;box-shadow:0 5px 18px #18253620;font-size:13px;line-height:1.45;text-transform:capitalize}.part-hover[hidden]{display:none}.structure-meta strong{overflow-wrap:anywhere;max-width:150px}.view-controls button:disabled{opacity:.22;background:none}.scene canvas{cursor:grab}.scene canvas:active{cursor:grabbing}
-@media(min-width:768px) and (max-width:1100px){body:has(.detail-sheet) .layers-panel{display:none}}
+@media(min-width:768px) and (max-width:1100px){body:has(.detail-sheet) .layers-panel:not(.book-panel){display:none}}
 @media(max-width:767px){.detail-sheet.is-isolated{max-height:34dvh}}
 .detail-sheet [data-slot=sheet-close],.about-sheet [data-slot=sheet-close]{top:10px;right:10px;min-width:36px;min-height:36px;transform:none}.detail-sheet .eyebrow{padding-right:28px}
 @media(max-width:767px){.detail-sheet [data-slot=sheet-close],.about-sheet [data-slot=sheet-close]{min-width:44px;min-height:44px;top:3px;right:3px}}
@@ -86,3 +86,38 @@ h1 .edition{font-family:inherit;font-weight:500;font-size:10px;letter-spacing:.0
 @media(max-width:767px){body:has(.detail-sheet) .view-controls{visibility:hidden}}
 
 @media(max-height:600px) and (orientation:landscape){body:has(.detail-sheet) .bottom-dock{left:12px;right:324px;width:auto;transform:none;max-width:none;margin:0}}
+
+/* Series features: model switcher, modes, per-region explode, quick actions, onboarding, quiz, book. */
+.identity{pointer-events:none}.identity .model-choice{pointer-events:auto;display:inline-flex;align-items:center;gap:8px;font-size:11px;color:#78828c;margin-top:12px}
+.model-choice select,.explode-options select,.book-filter{font:inherit;font-size:12px;color:#394957;background:#ffffffd9;border:1px solid #18253620;border-radius:8px;padding:6px 8px;min-height:32px;max-width:260px}
+.mode-switch{display:flex;gap:2px;background:#edf0f2;border-radius:10px;padding:3px;margin-right:4px}.mode-switch button{height:36px;border:0;background:none;border-radius:8px;font-size:12px;padding:0 11px;gap:7px;color:#697582}.mode-switch button.active{background:white;color:#233644;box-shadow:0 1px 3px #18253612}
+.explode-label{flex-wrap:wrap;gap:8px}.explode-options{display:flex;align-items:center;gap:6px;width:100%}.explode-options select{min-height:28px;padding:3px 6px;font-size:11px;max-width:150px}
+.mode-toggle{display:flex;gap:2px;background:#edf0f2;border-radius:7px;padding:2px}.mode-toggle button{height:24px;min-height:24px;border:0;background:none;border-radius:5px;font-size:10px;padding:0 8px;color:#697582;font-weight:500}.mode-toggle button[aria-pressed=true]{background:white;color:#233644;box-shadow:0 1px 3px #18253612}
+.quick-actions{display:flex;flex-wrap:wrap;gap:6px}.quick-actions button{height:34px;border:1px solid #18253618;border-radius:8px;font-size:12px;padding:0 11px;gap:7px;color:#394957;background:#ffffffb0}.quick-actions button:hover{background:white}
+.member-list .system-dot{display:inline-block;margin-right:8px;vertical-align:middle}
+.footer-links{display:flex;gap:18px;align-items:center}.footer-links a{display:flex;gap:6px;align-items:center;text-decoration:none;color:#73808c}
+.onboarding-backdrop{position:absolute;inset:0;z-index:60;background:#20242b22;display:flex;align-items:center;justify-content:center;padding:20px}
+.onboarding{width:min(420px,100%);padding:26px 26px 22px;border-radius:18px;display:flex;flex-direction:column;gap:12px}.onboarding-icon{width:52px;height:52px;border-radius:14px;background:#edf0f2;display:flex;align-items:center;justify-content:center;color:#263b48}.onboarding h2{margin:2px 0 0;font-size:22px;font-weight:600;letter-spacing:-.5px}.onboarding p{margin:0;font-size:14px;line-height:1.65;color:#4a5762}
+.onboarding-dots{display:flex;gap:6px;margin-top:4px}.onboarding-dots i{width:18px;height:3px;border-radius:2px;background:#dfe4e8}.onboarding-dots i.on{background:#263b48}
+.onboarding-actions{display:flex;justify-content:space-between;align-items:center;margin-top:6px}.onboarding-actions .primary-action{padding:0 18px}
+.mode-quiz .scene-caption,.mode-quiz .studio-footer span:first-child{display:none}
+.quiz-card{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);width:min(520px,calc(100% - 24px));padding:20px 22px;border-radius:16px;display:flex;flex-direction:column;gap:12px;z-index:25}
+.quiz-card h2{margin:0;font-size:21px;font-weight:600;letter-spacing:-.5px;line-height:1.25}.quiz-card h2 em{font-style:normal;color:#263b48;border-bottom:2px solid #b0c8ce}.quiz-card p{margin:0;font-size:13px;line-height:1.6;color:#4a5762}
+.quiz-progress{display:flex;align-items:center;gap:12px}.quiz-progress .small-number{margin-left:auto}.quiz-progress .icon-button{min-width:32px;min-height:32px}
+.quiz-kinds{display:grid;grid-template-columns:1fr 1fr;gap:6px}.quiz-kind{height:auto;justify-content:flex-start;gap:12px;padding:11px 12px;border:1px solid #18253618;border-radius:10px;text-align:left;white-space:normal}.quiz-kind span{display:flex;flex-direction:column;gap:2px}.quiz-kind strong{font-size:13px;font-weight:600}.quiz-kind small{font-size:11px;color:#68727d;line-height:1.4}
+.quiz-options{display:grid;grid-template-columns:1fr 1fr;gap:6px}.quiz-option{height:auto;min-height:44px;padding:9px 12px;border:1px solid #18253618;border-radius:9px;font-size:13px;white-space:normal;flex-direction:column;gap:0}.quiz-option.good{background:#e3f1ec;border-color:#458a85;color:#1f4f4b}.quiz-option.bad{background:#f5e6e3;border-color:#a8574a;color:#6d2f26}
+.quiz-result{display:flex;align-items:center;gap:6px;font-weight:500}.quiz-result.good{color:#1f4f4b}.quiz-result.bad{color:#6d2f26}.quiz-actions{display:flex;gap:8px;align-items:center}.quiz-card .primary-action{align-self:flex-start;padding:0 16px;gap:8px}
+.book-panel{top:200px}.book-search{font:inherit;font-size:13px;border:1px solid #18253620;border-radius:9px;padding:8px 10px;margin:12px 0 6px;background:#f7f9fa}.book-filter{margin-bottom:6px;width:100%}.book-list{padding-right:6px}.book-page{width:100%;height:auto;min-height:40px;justify-content:space-between;text-align:left;font-size:12px;padding:6px 8px;border-radius:7px;color:#394957;white-space:normal}.book-page.active{background:#263b4812;color:#182536}.book-page>span:first-child{display:flex;flex-direction:column}
+.book-panel .panel-foot{justify-content:space-between}.book-panel .panel-foot button{display:flex;gap:4px;align-items:center;font-size:11px;padding:0 6px}
+.embed .identity,.embed .top-actions,.embed .studio-footer,.embed .layers-panel,.embed .scene-caption{display:none!important}.embed .bottom-dock{bottom:18px}
+@media(max-width:1000px){.mode-switch button span{display:none}.mode-switch button{padding:0 10px}}
+@media(max-width:767px){.identity .model-choice{margin-top:6px}.model-choice select{max-width:190px;font-size:11px}.mode-switch{margin-right:0}.mode-switch button{width:40px;height:40px;padding:0}.explode-options{justify-content:space-between}.quiz-card{bottom:16px;padding:16px}.quiz-kinds,.quiz-options{grid-template-columns:1fr}.book-panel.mobile-open{top:auto}.onboarding{padding:20px}}
+@media(max-height:600px) and (orientation:landscape){.identity .model-choice{display:none}.quiz-card{bottom:12px;right:12px;left:auto;transform:none;width:360px;max-height:calc(100dvh - 24px);overflow:auto}}
+@media(max-width:767px){
+ .top-actions{flex-wrap:wrap;justify-content:flex-end;max-width:150px;row-gap:6px}
+ .mode-switch{order:-1;width:100%;justify-content:flex-end;background:none;padding:0;margin:0;gap:4px}
+ .mode-switch button{width:40px;height:36px;padding:0;background:#ffffffd9;border:1px solid var(--border);border-radius:9px}.mode-switch button.active{background:#263b48;color:#fff}
+ .identity .model-choice{margin-top:12px}.model-choice select{max-width:180px;min-height:34px}
+ .view-controls{top:max(164px,calc(env(safe-area-inset-top) + 146px))}.search-panel{top:max(160px,calc(env(safe-area-inset-top) + 142px))}
+ .explode-options select{max-width:150px}
+}
