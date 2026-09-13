@@ -1,17 +1,26 @@
 # Human Atlas
 
-An interactive 3D anatomy explorer built with React, Three.js, and shadcn/ui. Take the BodyParts3D adult male reference apart into **2,234 individually selectable meshes**, explore **15 anatomical systems**, and search **3,432 named concepts**.
+An interactive 3D anatomy series built with React, Three.js, and shadcn/ui. Take the BodyParts3D adult male reference apart into **2,234 individually selectable meshes**, explore **15 anatomical systems**, and search **3,432 named concepts**. Switch to the **Z-Anatomy** model for 2,068 bones, joints, muscles, vessels, nerves, and viscera. Test yourself in the **Quiz**, or read the **Book**, a page for every named concept.
 
 **[Explore the live demo](https://human-atlas-seven.vercel.app)**
 
 ## Explore
 
-- Orbit, zoom, and select structures directly on the body.
+- Orbit, zoom, and select structures directly on the body. A three-step controls tour runs on first launch.
 - Toggle individual systems or use skeleton and organ presets.
-- Move from assembled anatomy to a spaced inventory of every visible piece.
+- Explode the whole body or a single region (head, torso, each limb), either **by depth**, peeling superficial layers away from deep ones, or **laid out** as a spaced inventory of every visible piece.
 - Search anatomical names and source identifiers.
-- Isolate a selected structure and read its details.
+- Tap a structure to isolate it, **focus** the camera on it in place, **hide** it, expand to all pieces of its concept, or jump to **adjacent structures**.
+- Switch between the BodyParts3D and Z-Anatomy models.
 - Use compact controls and detail panels on mobile.
+
+## Quiz and Book
+
+`/quiz` offers six challenges of five questions each, all drawn from the loaded model: tap the named structure, name the highlighted one, name it from its shape alone, pick its system, tell left from right, and peel layers away to find a buried structure.
+
+`/book` is a browsable index of every named concept. Each page isolates the structure, describes it, and links to neighbouring structures with previous and next navigation.
+
+`/welcome` is the series landing page with live embedded models.
 
 ## Run locally
 
@@ -37,7 +46,7 @@ Validation covers mesh buffers, names and concept membership, nonoverlapping exp
 
 ## Anatomy data
 
-The current viewer uses **BodyParts3D 4.0**, an adult male reference anatomy, licensed **CC BY 4.0**. It does not represent every human structure or variation. Individual source meshes are distinct from named concepts, which may group multiple meshes. Descriptions distinguish general system context from individual organ explanations.
+The default model is **BodyParts3D 4.0**, an adult male reference anatomy, licensed **CC BY 4.0**. The second model is **Z-Anatomy**, licensed **CC BY-SA 4.0**, converted from the FBX exports in the [LluisV/Z-Anatomy](https://github.com/LluisV/Z-Anatomy) repository; Blender label markers, reference planes, and body-region surfaces are omitted, and material splits of one object are merged. It does not represent every human structure or variation. Individual source meshes are distinct from named concepts, which may group multiple meshes. Descriptions distinguish general system context from individual organ explanations.
 
 Geometry is simplified for browser performance while retaining every source mesh. The packaged model contains 2,288,268 triangles and downloads approximately 33 MB of compressed geometry. Full credits, source links, and adaptation details are in [ATTRIBUTION.md](public/ATTRIBUTION.md).
 
@@ -52,6 +61,8 @@ The optional WebMCP tools expose anatomy search and inspection in compatible bro
 ## Rebuilding geometry
 
 The repository includes browser-ready geometry. Rebuilding it is optional: obtain the official BodyParts3D OBJ archive and English metadata tables, prepare the joined concepts and display-system mappings, run `scripts/convert-anatomy.py`, then `node scripts/optimize-anatomy.mjs` and `node scripts/compress-models.mjs`. Simplification uses a 0.2% relative error limit per structure.
+
+For Z-Anatomy, export the FBX files with `assimp export <file>.fbx <file>.obj`, then run `python3 scripts/convert-zanatomy.py <obj-directory>`, `node scripts/optimize-anatomy.mjs zanatomy.json`, and `node scripts/compress-models.mjs zanatomy.json`.
 
 ## Deploy
 

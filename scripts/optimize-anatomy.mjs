@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import {MeshoptSimplifier} from 'meshoptimizer';
 await MeshoptSimplifier.ready;
-const name=process.argv[2]??'atlas.json',prefix=name.includes('female')?'female':'body';
+const name=process.argv[2]??'atlas.json',prefix=name==='atlas.json'?'body':name.replace(/\.json$/,'');
 const dir=new URL('../public/models/',import.meta.url),manifest=JSON.parse(fs.readFileSync(new URL(name,dir),'utf8'));
 const originals=manifest.chunks.map(c=>c.url.split('/').pop());
 if(manifest.optimized)throw new Error('Already optimized. Re-run the source converter first.');
@@ -11,8 +11,8 @@ const flush=()=>{if(!bytes)return;const url=`/models/${prefix}-${chunks.length}.
 const append=a=>{const padding=(4-bytes%4)%4;if(padding){segments.push(Buffer.alloc(padding));bytes+=padding;}const offset=bytes;const b=Buffer.from(a.buffer,a.byteOffset,a.byteLength);segments.push(b);bytes+=b.length;return offset;};
 for(const p of manifest.parts){
  const b=source[p.chunk];let pos=new Float32Array(b.buffer,b.byteOffset+p.positions,p.vertexCount*3),normal=new Int16Array(b.buffer,b.byteOffset+p.normals,p.vertexCount*3),indices=new Uint32Array(b.buffer,b.byteOffset+p.indices,p.indexCount);
- if(prefix==='female'){
-  // HRA exports often duplicate vertices at triangle boundaries. Weld coincident positions
+ if(prefix!=='body'){
+  // HRA and FBX exports often duplicate vertices at triangle boundaries. Weld coincident positions
   // before simplification, averaging their source normals for smooth anatomical surfaces.
   const map=new Map(),remap=new Uint32Array(p.vertexCount),wp=[],wn=[];
   for(let i=0;i<p.vertexCount;i++){
@@ -24,7 +24,7 @@ for(const p of manifest.parts){
   pos=new Float32Array(wp);normal=new Int16Array(wn);indices=Uint32Array.from(indices,i=>remap[i]);
  }
  // Preserve each named mesh, narrow vessels, and small organs. Bound geometric error to 0.2% of each part's extent.
- const target=Math.max(96,Math.floor(p.indexCount*.22/3)*3);
+ const target=Math.max(96,Math.floor(p.indexCount*(prefix==='body'?.22:.16)/3)*3);
  const [simplified,error]=MeshoptSimplifier.simplify(indices,pos,3,Math.min(indices.length,target),.002);
  maxError=Math.max(maxError,error);const [remap,count]=MeshoptSimplifier.compactMesh(simplified);
  const positions=new Float32Array(count*3),normals=new Int16Array(count*3);

@@ -15,6 +15,16 @@ Source OBJ comments mention an older CC BY-SA 2.1 Japan license. The official cu
 
 BodyParts3D represents an adult male reference anatomy based on TARO MRI and anatomical illustration refinements. It is not a complete model of every possible human anatomical structure or variation. This interface is educational and is not a clinical tool.
 
+## Z-Anatomy
+
+Z-Anatomy, by Gauthier Kervyn and contributors, licensed under CC Attribution-ShareAlike 4.0 International. FBX exports by Lluís Vinent Juanico.
+
+- Repository and license: https://github.com/LluisV/Z-Anatomy (PC-Version branch, `Resources/Models`)
+- Project: https://www.z-anatomy.com/
+- License terms: https://creativecommons.org/licenses/by-sa/4.0/
+
+Adaptations: FBX converted to OBJ with assimp; units converted from centimeters to meters (Y-up preserved); Blender label markers (`.j` cubes), reference planes, and body-region surfaces omitted; material splits of a single object merged; `.l`/`.r` suffixes rendered as Left/Right; geometry welded and simplified with meshoptimizer at a 0.2% relative error limit per structure; normals quantized to signed 16-bit; packed into binary chunks; display systems assigned by source file and name. Where a structure name matches a BodyParts3D concept, the FMA identifier is reused as the concept id. The adapted geometry in `public/models/zanatomy*` is shared under the same CC BY-SA 4.0 license.
+
 ## Historical assets (not included in the current release)
 
 Earlier repository revisions included female reference anatomy: Kristen Browne and Heidi Schlehlein, Human Reference Atlas / HuBMAP, *3D Reference Organ Set for Female v1.5* (2023). CC BY 4.0. Geometry adapted for this viewer.

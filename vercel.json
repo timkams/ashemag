@@ -1,1 +1,1 @@
-{"$schema":"https://openapi.vercel.sh/vercel.json","framework":"vite","buildCommand":"npm run build","outputDirectory":"dist","installCommand":"npm ci"}
+{"$schema":"https://openapi.vercel.sh/vercel.json","framework":"vite","buildCommand":"npm run build","outputDirectory":"dist","installCommand":"npm ci","cleanUrls":true,"rewrites":[{"source":"/quiz","destination":"/index.html"},{"source":"/book","destination":"/index.html"}]}
