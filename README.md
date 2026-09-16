@@ -24,6 +24,35 @@ npm run dev
 
 Open http://localhost:3016. To build the static site, run `npm run build`; the output is in `dist/`.
 
+## Run with Docker
+
+Requires Docker (and Docker Compose, bundled with Docker Desktop and recent Docker Engine installs). No local Node.js install needed.
+
+### Docker Compose (recommended)
+
+```sh
+docker compose up web
+```
+
+Open http://localhost:8080. This builds a production image (static assets served by nginx).
+
+For local development with hot-reload instead, run:
+
+```sh
+docker compose --profile dev up dev
+```
+
+Open http://localhost:3016.
+
+### Plain Docker
+
+```sh
+docker build --target runtime -t human-atlas .
+docker run --rm -p 8080:80 human-atlas
+```
+
+Open http://localhost:8080.
+
 ## Validate
 
 ```sh
