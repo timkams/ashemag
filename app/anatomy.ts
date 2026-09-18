@@ -32,5 +32,26 @@ export const EXPLANATIONS:Record<string,string> = {
  'urinary bladder':'A muscular reservoir in the pelvis that stores urine arriving from the kidneys through the ureters.',
  'trachea':'The main airway connecting the larynx to the bronchi. Its cartilage supports keep the airway open during breathing.',
  'diaphragm':'A broad muscle separating the chest and abdomen. When it contracts, it increases chest volume and helps draw air into the lungs.',
+ 'left lung':'The left lung has two lobes and is slightly smaller to make room for the heart. Its bronchi, vessels, and alveoli bring air and blood together for gas exchange.',
+ 'right lung':'The right lung has three lobes. Its bronchial tree conducts air inward while pulmonary vessels exchange carbon dioxide for oxygen in the alveoli.',
+ 'lung':'The lungs bring air and blood together for gas exchange. BodyParts3D models them as bronchial-tree and pulmonary-vessel pieces grouped into left/right lung concepts.',
 };
 export function explanation(name:string,system:SystemId){return EXPLANATIONS[name.toLowerCase()] ?? SYSTEMS.find(s=>s.id===system)?.description ?? '';}
+
+// Lungs have no single whole-organ mesh: BodyParts3D models them as 100+
+// bronchial-tree plus pulmonary-vessel segments grouped into left/right lung
+// concepts (FMA7310/FMA7309). Expand "lung" so pulmonary/bronchial names match.
+export function expandAnatomyQuery(term:string):string[]{
+ const t=term.toLowerCase().trim();
+ if(!t) return [];
+ const terms=[t];
+ if(t.includes('lung')) terms.push('pulmon','bronch','trachea','lingular');
+ if(t.includes('airway')) terms.push('bronch','trachea');
+ if(t.includes('pulmon')) terms.push('lung','bronch');
+ if(t.includes('bronch')) terms.push('lung','pulmon','trachea');
+ return [...new Set(terms)];
+}
+export function conceptMatchesQuery(c:Concept,terms:string[]):boolean{
+ const hay=`${c.name} ${c.id}`.toLowerCase();
+ return terms.some(t=>hay.includes(t));
+}

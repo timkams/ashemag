@@ -9,7 +9,7 @@ import {Switch} from '@/components/ui/switch';
 import {Sheet,SheetContent,SheetTitle,SheetDescription} from '@/components/ui/sheet';
 import {Combobox,ComboboxInput,ComboboxContent,ComboboxList,ComboboxItem,ComboboxEmpty} from '@/components/ui/combobox';
 import AnatomyScene from './scene';
-import {DEFAULT_VISIBLE,SYSTEMS,EXPLANATIONS,explanation,type Atlas,type Concept,type SceneState,type SystemId,type View} from './anatomy';
+import {DEFAULT_VISIBLE,SYSTEMS,EXPLANATIONS,explanation,expandAnatomyQuery,conceptMatchesQuery,type Atlas,type Concept,type SceneState,type SystemId,type View} from './anatomy';
 const initial:SceneState={explode:0,visible:DEFAULT_VISIBLE,selected:[],isolate:false,view:'three-quarter',rotate:false,reset:0};
 export default function Home(){
  const detailTitle=useRef<HTMLHeadingElement>(null);
@@ -21,7 +21,7 @@ export default function Home(){
  const activeSystems=SYSTEMS.filter(s=>counts[s.id]>0);
  const selectedParts=state.selected.map(id=>parts.get(id)).filter(p=>!!p),selected=selectedParts[0],system=SYSTEMS.find(s=>s.id===selected?.system);
  const visibleCount=atlas?.parts.filter(p=>state.isolate?state.selected.includes(p.id):state.visible.includes(p.system)||state.selected.includes(p.id)).length??0;
- const results=useMemo(()=>{if(!atlas)return[];const term=query.toLowerCase().trim();if(!term)return ['heart','brain','liver','stomach','spleen','pancreas','urinary bladder','trachea'].map(name=>atlas.concepts.find(c=>c.name.toLowerCase()===name)).filter((x):x is Concept=>!!x);return atlas.concepts.filter(c=>c.name.toLowerCase().includes(term)||c.id.toLowerCase().includes(term)).sort((a,b)=>a.name.length-b.name.length).slice(0,80);},[atlas,query]);
+ const results=useMemo(()=>{if(!atlas)return[];const term=query.toLowerCase().trim();if(!term)return ['heart','brain','liver','stomach','spleen','pancreas','urinary bladder','trachea','left lung','right lung'].map(name=>atlas.concepts.find(c=>c.name.toLowerCase()===name)).filter((x):x is Concept=>!!x);const terms=expandAnatomyQuery(term);const byLen=(a:Concept,b:Concept)=>a.name.length-b.name.length;const direct=atlas.concepts.filter(c=>c.name.toLowerCase().includes(term)||c.id.toLowerCase().includes(term)).sort(byLen);const extra=atlas.concepts.filter(c=>!direct.includes(c)&&conceptMatchesQuery(c,terms)).sort(byLen);return [...direct,...extra].slice(0,80);},[atlas,query]);
  const choose=(c:Concept)=>{setChosen(c);setState(s=>({...s,selected:c.elements,isolate:false,rotate:false}));setDetails(true);setPanel(null);};
  useEffect(()=>{if(!atlas)return;return registerAtlasTools(atlas,c=>flushSync(()=>choose(c)));},[atlas]);
  const choosePart=(id:string)=>{const p=parts.get(id);if(!p)return;setChosen({id:p.conceptId,name:p.name,elements:[id]});setState(s=>({...s,selected:[id],isolate:false,rotate:false}));setDetails(true);setPanel(null);};
