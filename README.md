@@ -1,11 +1,12 @@
 # Human Atlas
 
-An interactive 3D anatomy explorer built with React, Three.js, and shadcn/ui. Take the BodyParts3D adult male reference apart into **2,234 individually selectable meshes**, explore **15 anatomical systems**, and search **3,432 named concepts**.
+An interactive 3D anatomy explorer built with React, Three.js, and shadcn/ui, with selectable male and female reference models. The male collection (BodyParts3D) contains **2,234 individually selectable meshes** across **15 anatomical systems** and **3,432 named concepts**; the female collection (Human Reference Atlas) contains **888 meshes** and **1,073 named concepts**.
 
 **[Explore the live demo](https://human-atlas-seven.vercel.app)**
 
 ## Explore
 
+- Choose male or female anatomy; the geometry, catalogue, and available systems change together.
 - Orbit, zoom, and select structures directly on the body.
 - Toggle individual systems or use skeleton and organ presets.
 - Move from assembled anatomy to a spaced inventory of every visible piece.
@@ -29,6 +30,7 @@ Open http://localhost:3016. To build the static site, run `npm run build`; the o
 ```sh
 npm run check
 node scripts/validate-atlas.mjs
+node scripts/validate-atlas.mjs atlas-female.json
 node scripts/validate-interactions.mjs
 npm run build
 ```
@@ -37,9 +39,9 @@ Validation covers mesh buffers, names and concept membership, nonoverlapping exp
 
 ## Anatomy data
 
-The current viewer uses **BodyParts3D 4.0**, an adult male reference anatomy, licensed **CC BY 4.0**. It does not represent every human structure or variation. Individual source meshes are distinct from named concepts, which may group multiple meshes. Descriptions distinguish general system context from individual organ explanations.
+The viewer offers two independent, licensed reference collections, both **CC BY 4.0**: **BodyParts3D 4.0** (adult male) and the **Human Reference Atlas united-female v1.5** (adult female). Neither represents every human structure or variation, and their coverage differs — the female collection includes whole-body surface, selected organs, and reproductive anatomy, with partial skeleton and muscle coverage. Individual source meshes are distinct from named concepts, which may group multiple meshes. Descriptions distinguish general system context from individual organ explanations.
 
-Geometry is simplified for browser performance while retaining every source mesh. The packaged model contains 2,288,268 triangles and downloads approximately 33 MB of compressed geometry. Full credits, source links, and adaptation details are in [ATTRIBUTION.md](public/ATTRIBUTION.md).
+Geometry is simplified for browser performance while retaining every source mesh. The male model contains 2,288,268 triangles (~33 MB compressed); the female model contains ~1,810,000 triangles (~24 MB compressed). Full credits, source links, and adaptation details are in [ATTRIBUTION.md](public/ATTRIBUTION.md).
 
 This is an educational explorer, not a diagnostic or surgical tool.
 
@@ -51,7 +53,13 @@ The optional WebMCP tools expose anatomy search and inspection in compatible bro
 
 ## Rebuilding geometry
 
-The repository includes browser-ready geometry. Rebuilding it is optional: obtain the official BodyParts3D OBJ archive and English metadata tables, prepare the joined concepts and display-system mappings, run `scripts/convert-anatomy.py`, then `node scripts/optimize-anatomy.mjs` and `node scripts/compress-models.mjs`. Simplification uses a 0.2% relative error limit per structure.
+The repository includes browser-ready geometry. Rebuilding it is optional.
+
+Male: obtain the official BodyParts3D OBJ archive and English metadata tables, prepare the joined concepts and display-system mappings, run `scripts/convert-anatomy.py`, then `node scripts/optimize-anatomy.mjs` and `node scripts/compress-models.mjs`.
+
+Female: download the HRA united-female v1.5 GLB (see [ATTRIBUTION.md](public/ATTRIBUTION.md) for the source URL), run `python3 scripts/convert-female.py path/to/3d-vh-f-united.glb`, then `node scripts/optimize-anatomy.mjs atlas-female.json` and `node scripts/compress-models.mjs`.
+
+Both use meshoptimizer simplification with a 0.2% relative error limit per structure.
 
 ## Deploy
 
