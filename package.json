@@ -9,7 +9,12 @@
     "dev": "vite --host 0.0.0.0 --port 3016",
     "build": "vite build",
     "build:vercel": "vite build",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "validate:knowledge": "node scripts/validate-knowledge.mjs",
+    "audit:korean": "node scripts/audit-korean-coverage.mjs",
+    "audit:terminology": "node scripts/audit-anatomy-terminology-semantics.mjs",
+    "validate:cloudflare": "node scripts/validate-cloudflare-pages.mjs",
+    "preview:cloudflare": "npm run build && wrangler pages dev dist"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

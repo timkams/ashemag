@@ -7,10 +7,19 @@ import {createExplosionLayout} from './explosion-layout';
 import {decodeModelResponse} from './model-download';
 import {PointerTap} from './pointer-tap';
 import {SYSTEMS,type Atlas,type SceneState} from './anatomy';
-interface Props {atlas:Atlas;state:SceneState;onSelect:(id:string)=>void;onProgress:(n:number)=>void;onError:(s:string)=>void}
-export default function AnatomyScene({atlas,state,onSelect,onProgress,onError}:Props){
- const host=useRef<HTMLDivElement>(null),latest=useRef(state),select=useRef(onSelect);
- latest.current=state;select.current=onSelect;
+import type {AcupointCoordinate} from '@/lib/anatomy-knowledge/types';
+import type {LandmarkAnchorCandidate,LandmarkAnchorSide} from '@/lib/anatomy-knowledge/landmark-anchors';
+interface Props {
+ atlas:Atlas;state:SceneState;acupointCoordinates:AcupointCoordinate[];showAcupoints:boolean;
+ anchorTarget:string|null;anchorDraft:LandmarkAnchorCandidate|null;detectorProposal:LandmarkAnchorCandidate|null;detectorSide:LandmarkAnchorSide;
+ onAnchorPick:(candidate:LandmarkAnchorCandidate)=>void;onDetectorProposal:(candidate:LandmarkAnchorCandidate|null)=>void;
+ onSelect:(id:string)=>void;onSelectAcupoint:(id:string)=>void;onProgress:(n:number)=>void;onError:(s:string)=>void
+}
+export default function AnatomyScene({atlas,state,acupointCoordinates,showAcupoints,anchorTarget,anchorDraft,detectorProposal,detectorSide,onAnchorPick,onDetectorProposal,onSelect,onSelectAcupoint,onProgress,onError}:Props){
+ const host=useRef<HTMLDivElement>(null),latest=useRef(state),select=useRef(onSelect),selectAcupoint=useRef(onSelectAcupoint),showAcupointsRef=useRef(showAcupoints);
+ const anchorTargetRef=useRef(anchorTarget),anchorDraftRef=useRef(anchorDraft),detectorProposalStateRef=useRef(detectorProposal),detectorSideRef=useRef(detectorSide),anchorPickRef=useRef(onAnchorPick),detectorProposalRef=useRef(onDetectorProposal);
+ latest.current=state;select.current=onSelect;selectAcupoint.current=onSelectAcupoint;showAcupointsRef.current=showAcupoints;
+ anchorTargetRef.current=anchorTarget;anchorDraftRef.current=anchorDraft;detectorProposalStateRef.current=detectorProposal;detectorSideRef.current=detectorSide;anchorPickRef.current=onAnchorPick;detectorProposalRef.current=onDetectorProposal;
  useEffect(()=>{
   const el=host.current!;let disposed=false,frame=0,dirty=true,ready=false,lastView='',lastReset=-1,lastIsolate='',layoutKey='',amount=0;
   let lastState:SceneState|null=null;
@@ -20,7 +29,7 @@ export default function AnatomyScene({atlas,state,onSelect,onProgress,onError}:P
   renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<768?1.5:2));renderer.setClearColor('#f2f3f3');renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;el.appendChild(renderer.domElement);
   renderer.domElement.setAttribute('aria-label','Interactive human anatomy. Drag to orbit, pinch or scroll to zoom, and tap a structure to inspect it.');
   const scene=new T.Scene(),camera=new T.PerspectiveCamera(34,1,.005,100),controls=new OrbitControls(camera,renderer.domElement);
-  camera.position.set(1.4,1.05,3.6);controls.target.set(0,.85,0);controls.enableDamping=true;controls.dampingFactor=.085;controls.minDistance=.07;controls.maxDistance=40;controls.maxPolarAngle=Math.PI*.96;controls.addEventListener('change',()=>{dirty=true;});
+  camera.position.set(1.4,1.05,3.6);controls.target.set(0,.85,0);controls.enableDamping=true;controls.dampingFactor=.085;controls.minDistance=.07;controls.maxDistance=40;controls.maxPolarAngle=Math.PI*.96;controls.zoomToCursor=true;controls.touches.TWO=T.TOUCH.DOLLY_PAN;controls.addEventListener('change',()=>{dirty=true;});
   const pmrem=new T.PMREMGenerator(renderer),room=new RoomEnvironment(),env=pmrem.fromScene(room,.04);scene.environment=env.texture;room.dispose();pmrem.dispose();
   scene.add(new T.HemisphereLight(0xffffff,0xa7acb2,1.05));
   const key=new T.DirectionalLight(0xfffaf4,2.3);key.position.set(-2,4,3);scene.add(key);
@@ -38,6 +47,25 @@ export default function AnatomyScene({atlas,state,onSelect,onProgress,onError}:P
   const markerMaterial=new T.PointsMaterial({color:0x64748b,size:5,sizeAttenuation:false,transparent:true,opacity:.72,depthTest:false});
   markerMaterial.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif (distance(gl_PointCoord, vec2(0.5)) > 0.5) discard;');};
   const markers=new T.Points(markerGeometry,markerMaterial);markers.frustumCulled=false;markers.renderOrder=10;markers.visible=false;scene.add(markers);
+  const acupointPositions=new Float32Array(acupointCoordinates.length*3);acupointCoordinates.forEach((point,i)=>acupointPositions.set(point.position,i*3));
+  const acupointGeometry=new T.BufferGeometry();acupointGeometry.setAttribute('position',new T.BufferAttribute(acupointPositions,3));
+  const markerCanvas=document.createElement('canvas');markerCanvas.width=markerCanvas.height=64;
+  const markerCtx=markerCanvas.getContext('2d')!;
+  markerCtx.clearRect(0,0,64,64);markerCtx.beginPath();markerCtx.arc(32,32,25,0,Math.PI*2);markerCtx.fillStyle='#ff2d55';markerCtx.fill();
+  markerCtx.lineWidth=8;markerCtx.strokeStyle='#ffffff';markerCtx.stroke();
+  const acupointTexture=new T.CanvasTexture(markerCanvas);acupointTexture.colorSpace=T.SRGBColorSpace;acupointTexture.needsUpdate=true;
+  // Acupoints must obey the anatomy depth buffer. Keeping depthWrite off avoids
+  // markers occluding one another, while depthTest hides points on the far side
+  // of the body as the camera orbits.
+  // Use a world-space marker diameter with perspective attenuation. The old
+  // fixed 15px markers stayed the same screen size while the body shrank,
+  // causing distant acupoints to visually pile up when zoomed out.
+  const acupointMaterial=new T.PointsMaterial({map:acupointTexture,color:0xffffff,size:.035,sizeAttenuation:true,transparent:true,alphaTest:.18,opacity:1,depthTest:true,depthWrite:false,toneMapped:false});
+  const acupointMarkers=new T.Points(acupointGeometry,acupointMaterial);acupointMarkers.frustumCulled=false;acupointMarkers.renderOrder=20;acupointMarkers.visible=false;scene.add(acupointMarkers);
+  const anchorMarkerMaterial=new T.MeshBasicMaterial({color:0x16a34a,depthTest:true,depthWrite:false,toneMapped:false});
+  const anchorMarker=new T.Mesh(new T.SphereGeometry(.006,18,18),anchorMarkerMaterial);anchorMarker.visible=false;anchorMarker.renderOrder=25;scene.add(anchorMarker);
+  const proposalMarkerMaterial=new T.MeshBasicMaterial({color:0xf59e0b,depthTest:true,depthWrite:false,toneMapped:false,transparent:true,opacity:.95});
+  const proposalMarker=new T.Mesh(new T.SphereGeometry(.007,18,18),proposalMarkerMaterial);proposalMarker.visible=false;proposalMarker.renderOrder=24;scene.add(proposalMarker);
   const hover=document.createElement('div');hover.className='part-hover';hover.setAttribute('role','tooltip');hover.hidden=true;el.appendChild(hover);
   type Target={index:number;x:number;y:number;left:number;right:number;top:number;bottom:number};let targets:Target[]=[];
   const projected=new T.Vector3();
@@ -82,19 +110,151 @@ export default function AnatomyScene({atlas,state,onSelect,onProgress,onError}:P
    const direction=view==='front'?new T.Vector3(0,.02,1):view==='back'?new T.Vector3(0,.02,-1):view==='side'?new T.Vector3(1,.02,0):new T.Vector3(.35,.06,1).normalize();
    controls.target.set(extent>.1&&el.clientWidth>767?-packingWidth*.12:0,extent>.1||mobile?.85:.68,0);camera.position.copy(controls.target).addScaledVector(direction,distance);controls.update();dirty=true;
   };
-  const resize=()=>{layoutKey='';lastState=null;renderer.setPixelRatio(Math.min(devicePixelRatio,el.clientWidth<768||el.clientHeight<600?1.5:2));camera.aspect=el.clientWidth/el.clientHeight;camera.updateProjectionMatrix();renderer.setSize(el.clientWidth,el.clientHeight);fit(latest.current.view,amount);};const observer=new ResizeObserver(resize);observer.observe(el);
-  const raycaster=new T.Raycaster(),pointer=new T.Vector2(),tap=new PointerTap(),worldBox=new T.Box3(),hitPoint=new T.Vector3();
+  const resize=()=>{layoutKey='';lastState=null;renderer.setPixelRatio(Math.min(devicePixelRatio,el.clientWidth<768||el.clientHeight<600?1.5:2));camera.aspect=el.clientWidth/el.clientHeight;camera.updateProjectionMatrix();renderer.setSize(el.clientWidth,el.clientHeight);if(!anchorTargetRef.current)fit(latest.current.view,amount);};const observer=new ResizeObserver(resize);observer.observe(el);
+  const raycaster=new T.Raycaster(),pointer=new T.Vector2(),tap=new PointerTap(),worldBox=new T.Box3(),hitPoint=new T.Vector3();raycaster.params.Points={threshold:.025};
+  const baryA=new T.Vector3(),baryB=new T.Vector3(),baryC=new T.Vector3(),baryP=new T.Vector3(),baryOut=new T.Vector3();
+  const candidateFromHit=(landmarkId:string,partIndex:number,hit:T.Intersection<T.Object3D>,method:LandmarkAnchorCandidate['method'],side?:LandmarkAnchorSide,detectorId?:string):LandmarkAnchorCandidate|null=>{
+   if(hit.faceIndex===undefined||hit.faceIndex<0)return null;
+   const mesh=pickers[partIndex];if(!mesh)return null;
+   const geometry=mesh.geometry,index=geometry.index,position=geometry.getAttribute('position');if(!index||!position)return null;
+   const tri=hit.faceIndex,i0=index.getX(tri*3),i1=index.getX(tri*3+1),i2=index.getX(tri*3+2);
+   baryA.fromBufferAttribute(position,i0);baryB.fromBufferAttribute(position,i1);baryC.fromBufferAttribute(position,i2);
+   baryP.copy(hit.point);mesh.worldToLocal(baryP);T.Triangle.getBarycoord(baryP,baryA,baryB,baryC,baryOut);
+   if(!Number.isFinite(baryOut.x)||!Number.isFinite(baryOut.y)||!Number.isFinite(baryOut.z))return null;
+   return {
+    landmarkId,
+    position:[hit.point.x,hit.point.y,hit.point.z],
+    surfaceProjection:{meshId:atlas.parts[partIndex].id,triangleIndex:tri,barycentric:[baryOut.x,baryOut.y,baryOut.z],distance:0},
+    method,side,detectorId,detectorConfidence:detectorId?'moderate':undefined
+   };
+  };
+  const nearestSkinHit=(rc:T.Raycaster):{partIndex:number;hit:T.Intersection<T.Object3D>}|null=>{
+   let bestPartIndex=-1,bestHit:T.Intersection<T.Object3D>|null=null;
+   for(let i=0;i<atlas.parts.length;i++){
+    const p=atlas.parts[i];if(p.system!=='integumentary'||p.name!=='Skin')continue;
+    const mesh=pickers[i];if(!mesh)continue;
+    const hit=rc.intersectObject(mesh,false)[0];
+    if(hit&&(!bestHit||hit.distance<bestHit.distance)){bestPartIndex=i;bestHit=hit;}
+   }
+   return bestHit&&bestPartIndex>=0?{partIndex:bestPartIndex,hit:bestHit}:null;
+  };
+  const partSearchText=(i:number)=>`${atlas.parts[i].name} ${atlas.concepts.find(c=>c.id===atlas.parts[i].conceptId)?.name??''}`.toLowerCase();
+  const findPhalanxPart=(side:LandmarkAnchorSide,segment:'proximal'|'middle'|'distal')=>{
+   const sideRe=side==='left'?/left|sinister/:/right|dexter/;
+   const fingerRe=/middle finger|third finger|3rd finger|digit iii|digit 3|third digit/;
+   const segRe=segment==='proximal'?/proximal phalanx/:segment==='middle'?/middle phalanx|intermediate phalanx/:/distal phalanx/;
+   let fallback=-1;
+   for(let i=0;i<atlas.parts.length;i++){
+    const text=partSearchText(i);if(!segRe.test(text)||!sideRe.test(text))continue;
+    if(fingerRe.test(text))return i;
+    if(fallback<0&&/finger|digit/.test(text))fallback=i;
+   }
+   return fallback;
+  };
+  const findPartByName=(name:string)=>atlas.parts.findIndex(p=>p.name===name);
+  const computeHairBoundaryPoints=()=>{
+   const hairIndex=findPartByName('Hair of head'),mesh=hairIndex>=0?pickers[hairIndex]:undefined;if(!mesh)return[] as T.Vector3[];
+   const geometry=mesh.geometry,index=geometry.index,position=geometry.getAttribute('position');if(!index||!position)return[] as T.Vector3[];
+   const edges=new Map<string,{a:number;b:number;count:number}>();
+   const addEdge=(a:number,b:number)=>{const lo=Math.min(a,b),hi=Math.max(a,b),key=`${lo}:${hi}`,entry=edges.get(key);if(entry)entry.count++;else edges.set(key,{a:lo,b:hi,count:1});};
+   for(let i=0;i<index.count;i+=3){const a=index.getX(i),b=index.getX(i+1),c=index.getX(i+2);addEdge(a,b);addEdge(b,c);addEdge(c,a);}
+   const boundary=new Set<number>();edges.forEach(edge=>{if(edge.count===1){boundary.add(edge.a);boundary.add(edge.b);}});
+   const source=boundary.size?[...boundary]:Array.from({length:position.count},(_,i)=>i);
+   return source.map(i=>new T.Vector3().fromBufferAttribute(position,i).applyMatrix4(mesh.matrixWorld));
+  };
+  const computeHairlineProposal=(landmarkId:string):LandmarkAnchorCandidate|null=>{
+   const hairlineIds=['midpoint-anterior-hairline','midpoint-posterior-hairline','left-anterior-hairline-corner','right-anterior-hairline-corner'];
+   if(!hairlineIds.includes(landmarkId))return null;
+   const points=computeHairBoundaryPoints();if(points.length<4)return null;
+   const midline=points.filter(p=>Math.abs(p.x)<.016),midCandidates=midline.length?midline:points.slice().sort((a,b)=>Math.abs(a.x)-Math.abs(b.x)).slice(0,Math.max(8,Math.floor(points.length*.08)));
+   const anterior=midCandidates.reduce((best,p)=>p.z>best.z?p:best,midCandidates[0]);
+   const posterior=midCandidates.reduce((best,p)=>p.z<best.z?p:best,midCandidates[0]);
+   let seed:T.Vector3;
+   if(landmarkId==='midpoint-anterior-hairline')seed=anterior;
+   else if(landmarkId==='midpoint-posterior-hairline')seed=posterior;
+   else{
+    const frontBand=points.filter(p=>p.z>=anterior.z-.055&&Math.abs(p.y-anterior.y)<=.085);
+    const candidates=frontBand.length?frontBand:points.filter(p=>p.z>(anterior.z+posterior.z)/2),left=landmarkId.startsWith('left-');
+    seed=candidates.reduce((best,p)=>left?(p.x>best.x?p:best):(p.x<best.x?p:best),candidates[0]);
+   }
+   const hairIndex=findPartByName('Hair of head'),hairCenter=hairIndex>=0?bounds[hairIndex].getCenter(new T.Vector3()):new T.Vector3(0,1.63,0);
+   const outward=seed.clone().sub(hairCenter);if(outward.lengthSq()<1e-8)outward.set(0,0,landmarkId.includes('posterior')?-1:1);outward.normalize();
+   const detectorRay=new T.Raycaster(seed.clone().addScaledVector(outward,.035),outward.clone().multiplyScalar(-1),0,.22);
+   let hit=nearestSkinHit(detectorRay);
+   if(!hit){
+    const inward=new T.Vector3(-seed.x,0,-seed.z);
+    if(inward.lengthSq()>1e-8){inward.normalize();detectorRay.ray.origin.copy(seed.clone().addScaledVector(inward,-.03));detectorRay.ray.direction.copy(inward);hit=nearestSkinHit(detectorRay);}
+   }
+   if(!hit)return null;
+   return candidateFromHit(landmarkId,hit.partIndex,hit.hit,'specialized-detector',landmarkId.startsWith('left-')?'left':landmarkId.startsWith('right-')?'right':undefined,`bodyparts3d-hair-boundary:${landmarkId}`);
+  };
+  const computeFingerProposal=(landmarkId:string,side:LandmarkAnchorSide):LandmarkAnchorCandidate|null=>{
+   const pip=landmarkId==='radial-crease-proximal-interphalangeal-middle-finger';
+   const dip=landmarkId==='radial-crease-distal-interphalangeal-middle-finger';
+   if(!pip&&!dip)return null;
+   const a=findPhalanxPart(side,pip?'proximal':'middle'),b=findPhalanxPart(side,pip?'middle':'distal');if(a<0||b<0)return null;
+   const ca=centers[a].clone(),cb=centers[b].clone(),axis=cb.clone().sub(ca);if(axis.lengthSq()<1e-8)return null;axis.normalize();
+   const halfA=bounds[a].getSize(new T.Vector3()).multiplyScalar(.5),halfB=bounds[b].getSize(new T.Vector3()).multiplyScalar(.5);
+   const support=(half:T.Vector3,dir:T.Vector3)=>Math.abs(dir.x)*half.x+Math.abs(dir.y)*half.y+Math.abs(dir.z)*half.z;
+   const jointA=ca.clone().addScaledVector(axis,support(halfA,axis)),jointB=cb.clone().addScaledVector(axis,-support(halfB,axis)),joint=jointA.add(jointB).multiplyScalar(.5);
+   let leftMean=0,rightMean=0,leftN=0,rightN=0;
+   atlas.parts.forEach((p,i)=>{const txt=partSearchText(i);if(/left/.test(txt)){leftMean+=centers[i].x;leftN++;}if(/right/.test(txt)){rightMean+=centers[i].x;rightN++;}});
+   const leftX=leftN?leftMean/leftN:-1,rightX=rightN?rightMean/rightN:1,leftPositive=leftX>rightX;
+   const outward=(side==='left'?(leftPositive?1:-1):(leftPositive?-1:1)),radial=new T.Vector3(outward,0,0);
+   const radialHalf=Math.max(halfA.x,halfB.x),originOffset=Math.max(.014,radialHalf+.01),maxTravel=Math.max(.035,radialHalf*2+.018);
+   const outside=joint.clone().addScaledVector(radial,originOffset),detectorRay=new T.Raycaster(outside,radial.clone().multiplyScalar(-1),0,maxTravel);
+   const hit=nearestSkinHit(detectorRay);if(!hit)return null;
+   const candidate=candidateFromHit(landmarkId,hit.partIndex,hit.hit,'specialized-detector',side,pip?'middle-finger-pip-radial-joint-surface-local':'middle-finger-dip-radial-joint-surface-local');
+   if(!candidate)return null;
+   const hitPoint=new T.Vector3().fromArray(candidate.position),jointDistance=hitPoint.distanceTo(joint),axialError=Math.abs(hitPoint.clone().sub(joint).dot(axis));
+   if(jointDistance>maxTravel+.006||axialError>.018)return null;
+   return {...candidate,detectorConfidence:'high'};
+  };
+  const computeLandmarkProposal=(landmarkId:string,side:LandmarkAnchorSide)=>computeFingerProposal(landmarkId,side)??computeHairlineProposal(landmarkId);
+  const focusLandmark=(landmarkId:string,side:LandmarkAnchorSide,proposal:LandmarkAnchorCandidate|null)=>{
+   let target:T.Vector3,distance=.58,direction=new T.Vector3(0,.02,1);
+   if(proposal)target=new T.Vector3().fromArray(proposal.position);
+   else if(landmarkId==='umbilicus-center')target=new T.Vector3(0,.97,.105);
+   else if(landmarkId==='left-nipple-center')target=new T.Vector3(.105,1.25,.105);
+   else if(landmarkId==='right-nipple-center')target=new T.Vector3(-.105,1.25,.105);
+   else if(landmarkId.includes('hairline')){const hairIndex=findPartByName('Hair of head');target=hairIndex>=0?bounds[hairIndex].getCenter(new T.Vector3()):new T.Vector3(0,1.63,0);distance=.42;}
+   else if(landmarkId.includes('middle-finger')){const middle=findPhalanxPart(side,'middle');target=middle>=0?centers[middle].clone():new T.Vector3(side==='left'?.27:-.27,.75,.07);distance=.19;}
+   else target=controls.target.clone();
+   if(landmarkId.includes('middle-finger')){direction.set(side==='left'?.55:-.55,.12,1).normalize();distance=.19;}
+   else if(landmarkId==='midpoint-posterior-hairline')direction.set(0,.05,-1).normalize();
+   else if(landmarkId==='left-anterior-hairline-corner')direction.set(.45,.04,1).normalize();
+   else if(landmarkId==='right-anterior-hairline-corner')direction.set(-.45,.04,1).normalize();
+   camera.clearViewOffset();controls.target.copy(target);camera.position.copy(target).addScaledVector(direction,distance);controls.update();dirty=true;
+  };
   const down=(e:PointerEvent)=>{hover.hidden=true;tap.down(e.pointerId,e.clientX,e.clientY,e.pointerType==='touch'?12:5);};
-  const move=(e:PointerEvent)=>{tap.move(e.pointerId,e.clientX,e.clientY);if(e.buttons||amount<.5||e.pointerType==='touch'){hover.hidden=true;return;}const rect=el.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top,index=findTarget(x,y,12);hover.hidden=index<0;renderer.domElement.style.cursor=index<0?'grab':'pointer';if(index>=0){hover.textContent=atlas.parts[index].name;hover.style.left=`${Math.max(8,Math.min(x+14,el.clientWidth-260))}px`;hover.style.top=`${Math.max(8,Math.min(y+18,el.clientHeight-55))}px`;}};
+  const move=(e:PointerEvent)=>{tap.move(e.pointerId,e.clientX,e.clientY);if(anchorTargetRef.current){hover.hidden=true;renderer.domElement.style.cursor='crosshair';return;}if(e.buttons||amount<.5||e.pointerType==='touch'){hover.hidden=true;renderer.domElement.style.cursor='grab';return;}const rect=el.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top,index=findTarget(x,y,12);hover.hidden=index<0;renderer.domElement.style.cursor=index<0?'grab':'pointer';if(index>=0){hover.textContent=atlas.parts[index].name;hover.style.left=`${Math.max(8,Math.min(x+14,el.clientWidth-260))}px`;hover.style.top=`${Math.max(8,Math.min(y+18,el.clientHeight-55))}px`;}};
   const cancel=(e:PointerEvent)=>tap.cancel(e.pointerId);
   const up=(e:PointerEvent)=>{
    const validTap=tap.up(e.pointerId,e.clientX,e.clientY);if(!validTap||!ready)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);
+   const activeAnchor=anchorTargetRef.current;
+   if(activeAnchor){
+    const skinHit=nearestSkinHit(raycaster);
+    if(skinHit){
+     const candidate=candidateFromHit(activeAnchor,skinHit.partIndex,skinHit.hit,'manual-anchor');
+     if(candidate){hover.hidden=true;anchorPickRef.current(candidate);return;}
+    }
+   }
    let nearest=Infinity,found=-1;const hasSolid=atlas.parts.some((p,i)=>p.system!=='integumentary'&&data[i*4+3]>.5);
    pickers.forEach((mesh,i)=>{if(!mesh||data[i*4+3]<.5||(hasSolid&&atlas.parts[i].system==='integumentary'))return;worldBox.copy(bounds[i]).translate(mesh.position);if(!raycaster.ray.intersectBox(worldBox,hitPoint))return;const hits=raycaster.intersectObject(mesh,false);if(hits[0]&&hits[0].distance<nearest){nearest=hits[0].distance;found=i;}});
+   if(acupointMarkers.visible){
+    const acupointHit=raycaster.intersectObject(acupointMarkers,false)[0];
+    // Match visual occlusion for picking: a point hidden behind anatomy must not
+    // be selectable through the body. A small tolerance accounts for a marker
+    // sitting immediately outside the visible surface.
+    if(acupointHit&&acupointHit.index!==undefined&&acupointHit.distance<=nearest+.018){
+     const point=acupointCoordinates[acupointHit.index];
+     if(point){hover.hidden=true;selectAcupoint.current(point.acupointId);return;}
+    }
+   }
    if(found<0&&amount>.45)found=findTarget(e.clientX-rect.left,e.clientY-rect.top,e.pointerType==='touch'?24:16);if(found>=0){hover.hidden=true;select.current(atlas.parts[found].id);}
   };
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointermove',move);renderer.domElement.addEventListener('pointerup',up);renderer.domElement.addEventListener('pointercancel',cancel);
-  const clock=new T.Clock();let lastExtent=-1;
+  const clock=new T.Clock();let lastExtent=-1,lastShowAcupoints=showAcupointsRef.current,lastDetectorKey='';
   const animate=()=>{
    if(disposed)return;frame=requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05),s=latest.current;
    const changed=lastState?.visible!==s.visible||lastState?.selected!==s.selected||lastState?.isolate!==s.isolate;
@@ -123,12 +283,27 @@ export default function AnatomyScene({atlas,state,onSelect,onProgress,onError}:P
     }else if(lastIsolate){camera.clearViewOffset();fit(s.view,amount);}
     lastIsolate=isolateKey;
    }
-   controls.enableRotate=amount<.8;controls.mouseButtons.LEFT=amount<.8?T.MOUSE.ROTATE:T.MOUSE.PAN;controls.touches.ONE=amount<.8?T.TOUCH.ROTATE:T.TOUCH.PAN;ground.visible=platform.visible=ring.visible=innerRing.visible=amount<.5&&!s.isolate;markers.visible=amount>.75;controls.autoRotate=s.rotate&&!s.isolate&&amount<.4;controls.autoRotateSpeed=.65;controls.update();if(controls.autoRotate)dirty=true;
+   const detectorKey=ready&&anchorTargetRef.current?`${anchorTargetRef.current}:${detectorSideRef.current}`:'';
+   if(detectorKey!==lastDetectorKey){
+    lastDetectorKey=detectorKey;
+    const proposal=detectorKey?computeLandmarkProposal(anchorTargetRef.current!,detectorSideRef.current):null;
+    detectorProposalRef.current(proposal);
+    if(detectorKey)focusLandmark(anchorTargetRef.current!,detectorSideRef.current,proposal);
+    dirty=true;
+   }
+   const draft=anchorDraftRef.current,proposalState=detectorProposalStateRef.current;
+   const integumentaryMaterial=mats.get('integumentary') as T.MeshStandardMaterial|undefined;
+   if(integumentaryMaterial){const opacity=anchorTargetRef.current?.length?.55:.1;if(integumentaryMaterial.opacity!==opacity){integumentaryMaterial.opacity=opacity;integumentaryMaterial.needsUpdate=true;dirty=true;}}
+   anchorMarker.visible=!!draft&&!!anchorTargetRef.current;proposalMarker.visible=!!proposalState&&!!anchorTargetRef.current;
+   if(draft)anchorMarker.position.fromArray(draft.position);
+   if(proposalState)proposalMarker.position.fromArray(proposalState.position);
+   const fingerQc=!!anchorTargetRef.current?.includes('middle-finger');anchorMarker.scale.setScalar(fingerQc?.55:1);proposalMarker.scale.setScalar(fingerQc?.5:1);
+   controls.enableRotate=amount<.8;controls.mouseButtons.LEFT=amount<.8?T.MOUSE.ROTATE:T.MOUSE.PAN;controls.touches.ONE=amount<.8?T.TOUCH.ROTATE:T.TOUCH.PAN;ground.visible=platform.visible=ring.visible=innerRing.visible=amount<.5&&!s.isolate;markers.visible=amount>.75;const nextShowAcupoints=showAcupointsRef.current&&acupointCoordinates.length>0&&amount<.45&&!s.isolate&&!anchorTargetRef.current;if(nextShowAcupoints!==lastShowAcupoints){lastShowAcupoints=nextShowAcupoints;dirty=true;}acupointMarkers.visible=nextShowAcupoints;controls.autoRotate=s.rotate&&!s.isolate&&amount<.4&&!anchorTargetRef.current;controls.autoRotateSpeed=.65;controls.update();if(controls.autoRotate)dirty=true;
    if(dirty){renderer.render(scene,camera);targets=[];if(amount>.45){const hasSolid=atlas.parts.some((p,i)=>p.system!=='integumentary'&&data[i*4+3]>.5);atlas.parts.forEach((p,i)=>{if(data[i*4+3]<.5||(hasSolid&&p.system==='integumentary'))return;let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;for(let corner=0;corner<8;corner++){projected.set(p.bounds[(corner&1)?1:0][0]+data[i*4],p.bounds[(corner&2)?1:0][1]+data[i*4+1],p.bounds[(corner&4)?1:0][2]+data[i*4+2]).project(camera);const x=(projected.x+1)*el.clientWidth/2,y=(1-projected.y)*el.clientHeight/2;left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}projected.copy(centers[i]).add(new T.Vector3(data[i*4],data[i*4+1],data[i*4+2])).project(camera);if(projected.z< -1||projected.z>1)return;targets.push({index:i,x:(projected.x+1)*el.clientWidth/2,y:(1-projected.y)*el.clientHeight/2,left,right,top,bottom});});}dirty=false;}
 
   };animate();
   const contextLost=(e:Event)=>{e.preventDefault();onError('The 3D session was paused by your device. Reload to continue.');};renderer.domElement.addEventListener('webglcontextlost',contextLost);
-  return()=>{disposed=true;abort.abort();cancelAnimationFrame(frame);observer.disconnect();controls.dispose();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());scene.traverse(o=>{if(o instanceof T.Mesh&&!geometries.includes(o.geometry)){o.geometry.dispose();const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>m.dispose());}});env.dispose();partTexture.dispose();selectionTexture.dispose();markerGeometry.dispose();markerMaterial.dispose();hover.remove();renderer.dispose();renderer.domElement.remove();};
- },[atlas]);
+  return()=>{disposed=true;abort.abort();cancelAnimationFrame(frame);observer.disconnect();controls.dispose();acupointTexture.dispose();acupointGeometry.dispose();acupointMaterial.dispose();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());scene.traverse(o=>{if(o instanceof T.Mesh&&!geometries.includes(o.geometry)){o.geometry.dispose();const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>m.dispose());}});env.dispose();partTexture.dispose();selectionTexture.dispose();markerGeometry.dispose();markerMaterial.dispose();acupointGeometry.dispose();acupointMaterial.dispose();hover.remove();renderer.dispose();renderer.domElement.remove();};
+ },[atlas,acupointCoordinates]);
  return <div className="scene" ref={host}/>;
 }
