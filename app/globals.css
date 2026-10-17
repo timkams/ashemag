@@ -86,3 +86,268 @@ h1 .edition{font-family:inherit;font-weight:500;font-size:10px;letter-spacing:.0
 @media(max-width:767px){body:has(.detail-sheet) .view-controls{visibility:hidden}}
 
 @media(max-height:600px) and (orientation:landscape){body:has(.detail-sheet) .bottom-dock{left:12px;right:324px;width:auto;transform:none;max-width:none;margin:0}}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK MODE
+   Activated via .dark class on <html>. Every surface, text color,
+   border, glass, and interactive element is re-themed so nothing
+   camouflages against the dark background.
+   ══════════════════════════════════════════════════════════════ */
+
+html.dark{
+  color-scheme:dark;
+}
+html.dark :root,
+html.dark{
+  --background:#111519;--foreground:#e0e4e8;
+  --card:#1a1f26;--card-foreground:#e0e4e8;
+  --popover:#1a1f26;--popover-foreground:#e0e4e8;
+  --primary:#8cb4c4;--primary-foreground:#111519;
+  --secondary:#232a33;--secondary-foreground:#d0d5db;
+  --muted:#1e242b;--muted-foreground:#7f8c9a;
+  --accent:#1e242b;--accent-foreground:#e0e4e8;
+  --destructive:#c46b5d;
+  --border:#c0d0e016;--input:#c0d0e01c;
+  --ring:#8cb4c4;
+  color:#e0e4e8;background:#111519;
+}
+
+/* Glass surfaces */
+html.dark .glass{
+  background:#1a1f26e8;
+  border:1px solid #c0d0e014;
+  box-shadow:0 16px 48px #00000025;
+  backdrop-filter:blur(24px);
+}
+
+/* Vignette overlay */
+html.dark .vignette{
+  background:radial-gradient(ellipse at 51% 43%,transparent 35%,#00000020 100%);
+}
+
+/* Identity / header */
+html.dark .identity{color:#e0e4e8}
+html.dark .eyebrow{color:#7f8c9a}
+html.dark .status-dot{background:#5ea89e;box-shadow:0 0 12px #5ea89e30}
+html.dark h1{color:#e0e4e8}
+html.dark h1 .edition{color:#7f8c9a;border-color:#c0d0e018}
+html.dark .identity-meta{color:#6b7886}
+html.dark .identity-meta span{color:#4a5564}
+
+/* Top actions bar */
+html.dark .top-actions button{
+  border-color:#c0d0e016;
+  background:#1e242be0;
+  color:#9faab6;
+}
+html.dark .top-actions button:hover{background:#252c36;color:#d0d5db}
+html.dark .top-actions button.active{background:#2a3340;color:#e0e4e8}
+html.dark .top-actions kbd{border-color:#c0d0e01a;color:#5a6878}
+
+/* Theme toggle animation */
+html.dark .theme-toggle{color:#e8c44a}
+.theme-toggle{transition:color .25s,transform .25s}
+.theme-toggle:active{transform:scale(.88) rotate(-12deg)}
+
+/* Layers panel */
+html.dark .layers-panel{background:#1a1f26e8}
+html.dark .panel-heading{color:#d0d5db}
+html.dark .panel-heading .small-number{background:#252c36;color:#7f8c9a}
+html.dark .layer-presets{background:#161b22;border-color:#c0d0e010}
+html.dark .layer-presets button{
+  color:#7f8c9a;border-color:transparent;
+}
+html.dark .layer-presets button[aria-pressed=true]{
+  background:#252c36;
+  color:#e0e4e8;
+  box-shadow:0 1px 3px #00000018;
+}
+html.dark .layer-presets button:hover{color:#c0c8d0}
+
+/* System rows */
+html.dark .system-name{color:#5a6878}
+html.dark .enabled .system-name{color:#c0c8d0}
+html.dark .system-count{color:#4e5c6a}
+html.dark .system-dot{box-shadow:0 0 0 2px #c0d0e008}
+html.dark .system-row [data-slot=switch]{--primary:#5ea89e}
+html.dark .system-row [data-slot=switch-thumb]{background:#1a1f26}
+html.dark .system-list{scrollbar-color:#3a4450 transparent}
+
+/* Panel footer */
+html.dark .panel-foot{border-color:#c0d0e010;color:#5a6878}
+html.dark .panel-foot button{color:#5a6878}
+html.dark .panel-foot button:hover{color:#9faab6}
+
+/* View controls */
+html.dark .view-controls{background:#1a1f26e8;border-color:#c0d0e014}
+html.dark .view-controls button{color:#6b7886}
+html.dark .view-controls button:hover{color:#c0c8d0}
+html.dark .view-controls .active{
+  background:#8cb4c4;
+  color:#111519;
+  box-shadow:0 2px 4px #00000020;
+}
+html.dark .view-controls i{background:#c0d0e012}
+
+/* Scene caption */
+html.dark .scene-caption{color:#4e5c6a}
+html.dark .caption-line{background:#c0d0e018}
+
+/* Bottom dock */
+html.dark .bottom-dock{background:#1a1f26e8;border-color:#c0d0e014}
+html.dark .explode-label{color:#c0c8d0}
+html.dark .explode-label output{
+  background:#252c36;
+  border-color:#c0d0e010;
+  color:#d0d5db;
+}
+html.dark .explode-label output span{color:#6b7886}
+html.dark .slider-endpoints{color:#4e5c6a}
+html.dark .dock-reset{color:#6b7886;border-color:#c0d0e014}
+html.dark .dock-reset:hover{color:#9faab6}
+html.dark .dock-layers{border-color:#c0d0e014;color:#6b7886}
+
+/* Slider (shadcn) */
+html.dark .explode-control [data-slot=slider-thumb]{
+  border-color:#252c36;
+  background:#8cb4c4;
+  box-shadow:0 0 0 1px #8cb4c440,0 2px 5px #00000030;
+}
+html.dark .explode-control [data-slot=slider-track]{background:#252c36}
+html.dark .explode-control [data-slot=slider-range]{background:#5ea89e}
+
+/* Footer */
+html.dark .studio-footer{color:#4e5c6a}
+html.dark .studio-footer b{color:#2e3640}
+html.dark .studio-footer button{color:#5a6878}
+html.dark .studio-footer button:hover{color:#9faab6}
+
+/* Loading state */
+html.dark .loading{background:#1a1f26e8;color:#d0d5db}
+html.dark .loading strong{color:#e0e4e8}
+html.dark .loading span{color:#6b7886}
+html.dark .loading-track{background:#252c36}
+html.dark .loading-track i{background:#5ea89e}
+
+/* Error state */
+html.dark .loading.error{background:#1a1f26f0}
+html.dark .loading.error p{color:#e8a39a}
+html.dark .loading.error button{border-color:#c0d0e020;color:#d0d5db}
+
+/* Search panel */
+html.dark .search-panel{background:#1a1f26e8}
+html.dark .search-panel [data-slot=input-group]{background:#161b22;border-color:#c0d0e012}
+html.dark .search-panel input{color:#e0e4e8}
+html.dark .search-panel input::placeholder{color:#5a6878}
+html.dark .search-note{color:#5a6878}
+
+/* Search results dropdown */
+html.dark .anatomy-search-results{
+  background:#1a1f26!important;
+  border:1px solid #c0d0e016!important;
+  color:#d0d5db!important;
+}
+html.dark .anatomy-search-results [data-slot=combobox-item]{color:#c0c8d0}
+html.dark .anatomy-search-results [data-slot=combobox-item]:hover,
+html.dark .anatomy-search-results [data-slot=combobox-item][data-highlighted]{
+  background:#252c36;color:#e0e4e8;
+}
+html.dark .search-result-name{color:#d0d5db}
+
+/* Part hover tooltip */
+html.dark .part-hover{
+  background:#e0e4e8f0;
+  color:#111519;
+  box-shadow:0 5px 18px #00000030;
+}
+
+/* Detail sheet / inspector */
+html.dark .detail-sheet{
+  background:#1a1f26e8;
+  border-color:#c0d0e014;
+  box-shadow:0 15px 70px #00000020;
+}
+html.dark .detail-header .eyebrow{color:#7f8c9a}
+html.dark .structure-title{color:#e0e4e8!important}
+html.dark .structure-description{color:#8a96a4!important}
+html.dark .context-note{color:#5a6878}
+html.dark .structure-meta{border-color:#c0d0e010;color:#5a6878}
+html.dark .structure-meta strong{color:#c0c8d0}
+html.dark .detail-actions{border-color:#c0d0e012}
+html.dark .primary-action{
+  background:#8cb4c4;
+  color:#111519!important;
+  border-color:#8cb4c4;
+}
+html.dark .primary-action:hover,
+html.dark .primary-action.active{background:#6f9faf}
+html.dark .secondary-action{color:#6b7886}
+html.dark .secondary-action:hover{color:#9faab6;background:#252c3680}
+html.dark .member-list h3{color:#6b7886}
+html.dark .member-list button{color:#c0c8d0;border-color:#c0d0e010}
+html.dark .member-list button:hover{background:#252c3640}
+html.dark .source-link{color:#6fa4b4}
+
+/* About sheet */
+html.dark .about-sheet{background:#1a1f26f0;border-color:#c0d0e014}
+html.dark .about-sheet [data-slot=sheet-description]{color:#8a96a4}
+html.dark .about-copy{color:#7f8c9a}
+html.dark .about-copy strong{color:#c0c8d0}
+html.dark .about-copy h3{color:#c0c8d0}
+html.dark .about-copy a{color:#6fa4b4}
+html.dark .about-copy a:hover{color:#8cb4c4}
+
+/* Sheet overlay */
+html.dark [data-slot=sheet-overlay]{background:rgba(0,0,0,.45)}
+
+/* Sheet close buttons */
+html.dark .detail-sheet [data-slot=sheet-close],
+html.dark .about-sheet [data-slot=sheet-close]{color:#6b7886}
+html.dark .detail-sheet [data-slot=sheet-close]:hover,
+html.dark .about-sheet [data-slot=sheet-close]:hover{color:#e0e4e8;background:#252c36}
+
+/* General button hover in dark mode */
+html.dark button:not([data-slot]):hover{color:#d0d5db;background:#c0d0e008}
+
+/* Anatomy choice select */
+html.dark .anatomy-choice [data-slot=select-trigger]{
+  background:#1e242be0;
+  color:#d0d5db;
+  border-color:#c0d0e016;
+  box-shadow:0 1px 2px #00000010;
+}
+
+/* Switch controls */
+html.dark [data-slot=switch]{
+  background:#2a3340;
+}
+html.dark [data-slot=switch][data-state=checked]{
+  background:var(--primary);
+}
+
+/* Badge component */
+html.dark [data-slot=badge]{
+  color:#9faab6;
+  border-color:#c0d0e018;
+}
+
+/* Focus ring */
+html.dark button:focus-visible,
+html.dark a:focus-visible{outline-color:#5ea89e}
+
+/* Scrollbar on dark panels */
+html.dark .detail-scroll{scrollbar-color:#3a4450 transparent}
+
+/* Mobile open panels in dark mode */
+@media(max-width:767px){
+  html.dark .layers-panel.mobile-open{background:#1a1f26f0}
+  html.dark .bottom-dock{background:#1a1f26f0}
+  html.dark .detail-sheet{background:#1a1f26f0}
+}
+
+/* Smooth transition when toggling theme */
+html{transition:background-color .35s ease,color .35s ease}
+.glass,.vignette,.top-actions button,.layers-panel,.bottom-dock,.view-controls,.part-hover,.loading,.search-panel,.detail-sheet,.about-sheet{
+  transition:background .35s ease,border-color .35s ease,box-shadow .35s ease,color .25s ease;
+}
+
