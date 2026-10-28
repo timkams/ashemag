@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {createExplosionLayout} from '../app/explosion-layout.ts';
 import {PointerTap} from '../app/pointer-tap.ts';
 import {atlasTools} from '../app/agent-tools.ts';
+import {DEFAULT_VISIBLE,SYSTEMS,explanation} from '../app/anatomy.ts';
 
 for (const file of ['atlas.json']) {
   const atlas=JSON.parse(await readFile(new URL(`../public/models/${file}`,import.meta.url)));
@@ -29,6 +30,27 @@ for (const file of ['atlas.json']) {
   assert.throws(()=>inspect.execute({id:'nonexistent-structure'}));
   assert.equal(selected,previous);
   assert.throws(()=>find.execute({query:' '}));
+  // BodyParts3D identifies these meshes as right/left iliotibial tracts and
+  // places both beneath zone of fascia lata, not bone (GitHub issue #423).
+  // https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/isa_element_parts.txt
+  // https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/isa_inclusion_relation_list.txt
+  const connective=SYSTEMS.find(system=>system.id==='connective');
+  assert.ok(connective&&DEFAULT_VISIBLE.includes(connective.id));
+  for(const [id,conceptId,name] of [
+    ['FJ1423','FMA58776','Right iliotibial tract'],
+    ['FJ1423M','FMA58777','Left iliotibial tract'],
+  ]) {
+    const part=atlas.parts.find(part=>part.id===id);
+    assert.ok(part,`${id}: iliotibial tract mesh is missing`);
+    assert.equal(part.conceptId,conceptId);
+    assert.equal(part.name,name);
+    assert.equal(part.system,'connective',`${id}: iliotibial tract must be in Connective tissue, not Skeleton`);
+    assert.equal(explanation(part.name,part.system),connective.description);
+    assert.ok(find.execute({query:conceptId}).some(result=>result.id===conceptId));
+    inspect.execute({id:conceptId});
+    assert.deepEqual(selected.elements,[id]);
+  }
+  console.log('Both iliotibial tracts are in Connective tissue and remain searchable and selectable.');
   console.log(`${file}: packing at desktop/mobile aspect ratios and search/inspection contracts passed.`);
 }
 const tap=new PointerTap();
